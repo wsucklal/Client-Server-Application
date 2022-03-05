@@ -2,7 +2,7 @@ let ITPpacket = require('./ITPResponse');
 let singleton = require('./Singleton');
 
 // You may need to add some delectation here
-
+let v, timestamp, fileName,fileExtensionInteger, c, reqTypeInteger, reqType ;
 
 module.exports = {
 
@@ -12,10 +12,71 @@ module.exports = {
         //
         // you may need to develop some helper functions
         // that are defined outside this export block
+
+        let clientNo = singleton.getTimestamp();
+        console.log("Client-" + clientNo + " is connected at timestamp" + singleton.getTimestamp());
+       
+        sock.on ("data", data =>{
+            console.log("ITP Packet received:");
+            console,log();
+            handleClientPackets(data);
+        });
+
+        sock.on("close",data =>{
+            handleClientLeaving();
+        });
     }
 };
 
+//Handling Client Packets
+function handleClientPackets(data){
 
+    v = parseBitPacket(data, 0, 4);
+    timestamp = parseBitPacket(data, 32, 32);
+    fileExtensionInteger = parseBitPacket(data, 64, 4);
+    reqTypeInteger = parseBitPacket(data, 24, 8);
+    fileName = bytesToString(data.slice(12));
+
+    //convert request type int to request type string
+    switch(reqTypeInteger){
+        case 0 : reqType = "Query"; break;
+        case 1 : reqType = "Found"; break;
+        case 2 : reqType = "Not found"; break;
+        case 3 : reqType = "Busy"; break;      
+    }
+
+    //convert request type int to request type string
+    switch(fileExtensionInteger){
+      
+        case 1 : fileExtension = "BMP"; break;
+        case 2 : fileExtension = "JPEG"; break;
+        case 3 : fileExtension = "GIF"; break;
+        case 4 : fileExtension = "PNG"; break;
+        case 5 : fileExtension = "TIFF"; break;
+        case 15 : fileExtension = "RAW"; break;      
+    }
+
+    console.log(
+        "Client-" + clientNo + "requests :\n" + 
+        
+        "-- ITP version: " +  v + "\n " + 
+
+        "-- Timestamp: " +  timestamp +  "\n " + 
+
+        "-- Request Type: " +  reqType +  "\n " + 
+
+        "-- Image file extension(s):" +  fileExtension + "\n" +
+        
+        "-- Image file name: " + fileName
+        );
+
+    ITPpacket.getPacket(data);
+    sock.write(ITPpacket.getPacket(data));
+}
+
+function handleClientLeaving(){
+    console.log ( "Client-" +  clientNo + "closed the connection")
+}
 //// Some usefull methods ////
 // Feel free to use them, but DON NOT change or add any code in these methods.
 

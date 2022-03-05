@@ -1,5 +1,12 @@
 
 // You may need to add some delectation here
+let singleton =  require ("./Singleton");
+let fs = require("fs");
+
+//Variables for packets
+var HEADER_SIZE =12; //packet header size
+let v =7;
+let responseType, sequenceNumber, timestamp, imageByteSize;
 
 module.exports = {
 
@@ -12,11 +19,23 @@ module.exports = {
     //--------------------------
     //getpacket: returns the entire packet
     //--------------------------
-    getPacket: function () {
+    getPacket: function (data) {
         // enter your code here
-        return "this should be a correct packet";
+
+        let reponseHeader;
+        let payLoad
+        
+        let packetData =  packetData.concat([reponseHeader,payLoad])
+        let packet = new Buffer(packetData);
+
+
+
+        return packet ;
     }
 };
+
+
+
 
 //// Some usefull methods ////
 // Feel free to use them, but DON NOT change or add any code in these methods.
