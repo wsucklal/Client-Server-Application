@@ -5,15 +5,44 @@ let fs = require("fs");
 
 //Variables for packets
 var HEADER_SIZE =12; //packet header size
-let v =7;
-let responseType, sequenceNumber, timestamp, imageByteSize;
+let v, responseType, sequenceNumber, timestamp, imageByteSize, responseHeader, imageData, packetData, fileName;
 
 module.exports = {
 
-    init: function () { // feel free to add function parameters as needed
+    init: function (data) { 
+
+        // feel free to add function parameters as needed
         //
         // enter your code here
         //
+
+        reponseHeader = new Buffer.alloc(HEADER_SIZE);
+
+        v = 7 ;
+        (imageData) ? responseType = 1 :  responseType = 2; //set response type to  either 1 or 2
+        sequenceNumber = singleton.getSequenceNumber();
+        timestamp =  singleton.getTimestamp();
+
+
+        fileName = data.slice(4, 16).toString().replace(/\0/g, "");
+
+        const stats = fs.statSync(
+            require("path").dirname(require.main.filename) + "/images/" + fileName
+        );
+
+        const imageByteSize = stats.size / 1000;
+
+        imageData =  fs.readFileSync(
+            require("path").dirname(require.main.filename) + "/images/" + fileName
+        );
+
+
+        storeBitPacket(this.reponseHeader, v, 0, 4);
+        storeBitPacket(this.responseHeader, responseType, 4, 8);
+        storeBitPacket(this.responseHeader, sequenceNumber, 12, 20);
+        storeBitPacket(this.responseHeader, timestamp, 32, 32);
+        storeBitPacket(this.responseHeader, imageByteSize, 64, 32);
+
     },
 
     //--------------------------
@@ -21,14 +50,8 @@ module.exports = {
     //--------------------------
     getPacket: function (data) {
         // enter your code here
-
-        let reponseHeader;
-        let payLoad
-        
-        let packetData =  packetData.concat([reponseHeader,payLoad])
-        let packet = new Buffer(packetData);
-
-
+                
+        let packet = new Buffer(packetData.concat([this.reponseHeader,imageData]));
 
         return packet ;
     }

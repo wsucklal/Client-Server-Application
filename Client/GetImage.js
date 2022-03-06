@@ -1,17 +1,72 @@
 let net = require("net");
 let fs = require("fs");
 let open = require("open");
-
-// let ITPpacket = require("./ITPRequest"); // uncomment this line after you run npm install command
+let ITPpacket = require('./ITPRequest');
 
 // Enter your code for the client functionality here
+// Process is built into node referring to the GetImage -s <serverIP>:<port> -q <image name> -v <version>
+// argv determines which section of the call we are on
+let connectionInfo = process.argv[3].split(":");
+let fileName = process.argv[5].split(".");
+let HOST = connectionInfo[0];
+let PORT = connectionInfo[1];
+let name = fileName[0];
+let fileType = fileName[1];
 
+ITPpacket.init(fileType, name);
 
+//Creating a socket connection
+let client = new net.Socket();
+client.connect(PORT, HOST, function() {
+  console.log("Connected to ImageDB server on: " + HOST + ":" + PORT);
+  client.write(ITPpacket.getBytePacket());
+});
 
+const filePartitions = [];
+client.on("data", partition => filePartitions.push(partition));
+client.on("end", () => {
+  const resPacket = Buffer.concat(filePartitions);
+  let file = resPacket.slice(12);
+  let header = resPacket.slice(0,12);
 
+  fs.writeFile(process.argv[5], file, 'binary', function(error, wrote){
+    if(error) {
+      console.log(error);
+    } else {
+      open(process.argv[5]);
+    }
+  });
 
-//// Some usefull methods ////
-// Feel free to use them, but DON NOT change or add any code in these methods.
+  let v = parseBitPacket(resPacket, 0, 4);
+  let resTypeInteger = parseBitPacket(resPacket, 4, 8);
+  let seqNum = parseBitPacket(resPacket, 12, 20)
+  let timestamp = parseBitPacket(resPacket, 32, 32);
+
+  let resType;
+  if(resTypeInteger == 0) {resType = "Query";} 
+  else if(resTypeInteger == 1){resType = "Found";} 
+  else if(resTypeInteger == 2){resType = "Not found";} 
+  else if(resTypeInteger == 3){resType = "Busy";}
+
+  console.log(printPacketBit(header) +
+    "Server sent: \n" +
+    "\n    --ITP version = " + v +
+    "\n    --Response Type = " + resType +
+    "\n    --Sequence Number =  " + seqNum +
+    "\n    --Timestamp = " + timestamp
+  );
+
+  client.end();
+});
+
+client.on("close", function(){
+  console.log("Connection closed");
+})
+
+client.on("end", () => {
+  console.log("Disconnected from the server")
+})
+
 
 // Returns the integer value of the extracted bits fragment for a given packet
 function parseBitPacket(packet, offset, length) {

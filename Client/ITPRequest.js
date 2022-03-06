@@ -1,19 +1,76 @@
-// You may need to add some delectation here
+//Defining response packet header size in bytes
+var H_SIZE = 12;
+
+//Defining variables that make up the header
+var v, requestType, timestamp, imageType, fileName;
 
 module.exports = {
-  init: function () {
-    // feel free to add function parameters as needed
-    //
-    // enter your code here
-    //
+  //ITP payload size
+  payloadSize: 0,
+  //Ihe bit content of the payload
+  payload: '',
+  //The bit content of the ITP header
+  reqHeader: '',
+
+  init: function (type, name) {
+    //Given version feild is 7
+    v = 7;
+
+    //Set variables
+    requestType = 0;
+    timestamp = 0;
+    imageType = type;
+    fileName = name;
+
+    //Set the size of the image file name size accordingly
+    let stringName = stringToBytes(fileName);
+    this.payloadSize = stringName.length;
+
+    //Logic for image type;
+    let bitImageType;
+    if (imageType == "bmp"){ bitImageType = 1; }
+    else if (imageType == "jpeg"){ bitImageType = 2; }
+    else if (imageType == "gif"){ bitImageType = 3; }
+    else if (imageType == "png"){  bitImageType = 4; }
+    else if (imageType == "tiff"){ bitImageType = 5; }
+    else if(imageType == "raw"){bitImageType = 15; }
+
+    //Filling the header with the necessary fields
+    this.reqHeader = new Buffer.alloc(H_SIZE);
+    storeBitPacket(this.reqHeader, v, 0, 4);
+    storeBitPacket(this.reqHeader, requestType, 24, 8);
+    storeBitPacket(this.reqHeader, timestamp, 32, 32);
+    storeBitPacket(this.reqHeader, bitImageType, 64, 4);
+    storeBitPacket(this.reqHeader, this.payloadSize, 68, 28);
+    
+    //Create payload 
+    this.payload = new Buffer.alloc(stringName.length);
+
+    for (var i = 0 ; i < stringName.length ; i++) {
+      this.payload[i] = stringName[i];
+    }
+
+    //console.log(stringName);
+    //console.log(this.payloadSize);
+    //console.log(this.payload);
+    
   },
 
   //--------------------------
   //getBytePacket: returns the entire packet in bytes
   //--------------------------
   getBytePacket: function () {
-    // enter your code here
-    return "this should be a correct packet";
+    //Creat buffer to hold packet
+    let packet = new Buffer.alloc(this.payloadSize + H_SIZE);
+
+    //Concatonate the header with the payload
+    for(var x = 0 ; x < H_SIZE ; x++){ //Header part
+      packet[x] = this.reqHeader[x];
+    }
+    for(var y = 0 ; y < this.payloadSize ; y++){ //Payload part
+        packet[y + H_SIZE] = this.payload[y];
+    }
+    return packet;
   },
 };
 

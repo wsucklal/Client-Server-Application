@@ -2,7 +2,7 @@ let ITPpacket = require('./ITPResponse');
 let singleton = require('./Singleton');
 
 // You may need to add some delectation here
-let v, timestamp, fileName,fileExtensionInteger, c, reqTypeInteger, reqType ;
+let v, timestamp, fileName,fileExtensionInteger, reqTypeInteger, reqType ;
 
 module.exports = {
 
@@ -58,7 +58,7 @@ function handleClientPackets(data){
 
     console.log(
         "Client-" + clientNo + "requests :\n" + 
-        
+
         "-- ITP version: " +  v + "\n " + 
 
         "-- Timestamp: " +  timestamp +  "\n " + 
@@ -77,6 +77,8 @@ function handleClientPackets(data){
 function handleClientLeaving(){
     console.log ( "Client-" +  clientNo + "closed the connection")
 }
+
+
 //// Some usefull methods ////
 // Feel free to use them, but DON NOT change or add any code in these methods.
 
