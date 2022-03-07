@@ -1,6 +1,6 @@
 // You may need to add some delectation here
-let singleton = require("./Singleton");
 let fs = require("fs");
+let singleton = require('./Singleton');
 
 //Variables for packets
 var HEADER_SIZE = 12; //packet header size
@@ -14,14 +14,14 @@ let v,
 module.exports = {
 
     reponseHeader:"",
-  init: function (seqNumber,tstamp, fName, fExtension) {
+  init: function (seqNumber, fName, fExtension) {
     // feel free to add function parameters as needed
     //
     // enter your code here
     //
     v = 7;
     sequenceNumber = seqNumber;
-    timestamp =  tstamp;
+    timestamp =  singleton.getTimestamp();
     fileName = fName;
     fileExtension = fExtension.toLowerCase()
      responseHeader = new Buffer.alloc(HEADER_SIZE);

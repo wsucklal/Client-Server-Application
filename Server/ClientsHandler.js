@@ -3,7 +3,6 @@ let singleton = require('./Singleton');
 
 // You may need to add some delectation here
 let v, timestamp, fileName,fileExtensionInteger, reqTypeInteger, reqType ;
-let clientInfo = [];
 module.exports = {
 
     handleClientJoining: function (sock) {
@@ -34,8 +33,7 @@ module.exports = {
 //Handling Client Packets
 function handleClientPackets(data,clientNo){
 
-    //v = parseBitPacket(data, 0, 4);
-    v = 6;
+    v = parseBitPacket(data, 0, 4);
     timestamp = parseBitPacket(data, 32, 32);
     sequenceNumber = singleton.getSequenceNumber();
     fileExtensionInteger = parseBitPacket(data, 64, 4);
@@ -52,7 +50,6 @@ function handleClientPackets(data,clientNo){
 
     //convert request type int to request type string
     switch(fileExtensionInteger){
-      
         case 1 : fileExtension = "BMP"; break;
         case 2 : fileExtension = "JPEG"; break;
         case 3 : fileExtension = "GIF"; break;
@@ -79,7 +76,7 @@ function handleClientPackets(data,clientNo){
     
     //check for version
     if(v==7){
-        ITPpacket.init(sequenceNumber,timestamp, fileName, fileExtension);
+        ITPpacket.init(sequenceNumber, fileName, fileExtension);
         ITPpacket.getPacket();
         return true;
     }

@@ -6,14 +6,16 @@ let ITPpacket = require('./ITPRequest');
 // Enter your code for the client functionality here
 // Process is built into node referring to the GetImage -s <serverIP>:<port> -q <image name> -v <version>
 // argv determines which section of the call we are on
+
 let connectionInfo = process.argv[3].split(":");
 let fileName = process.argv[5].split(".");
 let HOST = connectionInfo[0];
 let PORT = connectionInfo[1];
 let name = fileName[0];
 let fileType = fileName[1];
+let v = process.argv[7];
 
-ITPpacket.init(fileType, name);
+ITPpacket.init(fileType, name,v);
 
 //Creating a socket connection
 let client = new net.Socket();
@@ -23,7 +25,16 @@ client.connect(PORT, HOST, function() {
 });
 
 const filePartitions = [];
+
 client.on("data", partition => filePartitions.push(partition));
+
+// client.on("data", data => {
+
+//   let bufferSize = data.byteLength;
+
+
+// });
+
 client.on("end", () => {
   const resPacket = Buffer.concat(filePartitions);
   let file = resPacket.slice(12);
@@ -41,13 +52,15 @@ client.on("end", () => {
   let resTypeInteger = parseBitPacket(resPacket, 4, 8);
   let seqNum = parseBitPacket(resPacket, 12, 20)
   let timestamp = parseBitPacket(resPacket, 32, 32);
-
+  
   let resType;
-  if(resTypeInteger == 0) {resType = "Query";} 
-  else if(resTypeInteger == 1){resType = "Found";} 
-  else if(resTypeInteger == 2){resType = "Not found";} 
-  else if(resTypeInteger == 3){resType = "Busy";}
 
+  switch(resTypeInteger){
+    case 0 : resType = "Query"; break;
+    case 1 : resType = "Found"; break;
+    case 2 : resType = "Not found"; break;
+    case 3 : resType = "Busy"; break;      
+  }
   console.log(printPacketBit(header) +
     "Server sent: \n" +
     "\n    --ITP version = " + v +
