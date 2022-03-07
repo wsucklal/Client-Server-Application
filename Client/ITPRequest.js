@@ -12,14 +12,14 @@ module.exports = {
   //The bit content of the ITP header
   reqHeader: '',
 
-  init: function (type, name,v,bitImageType) {
+  init: function (imageType, name,v,bitImageType) {
     //Given version feild is 7
     v = v;
 
     //Set variables
     requestType = 0;
     timestamp = 0;
-    imageType = type;
+    imageType = imageType;
     fileName = name;
     bitImageType = bitImageType;
 

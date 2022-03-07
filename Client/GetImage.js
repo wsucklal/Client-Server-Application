@@ -12,10 +12,16 @@ let fileName = process.argv[5].split(".");
 let HOST = connectionInfo[0];
 let PORT = connectionInfo[1];
 let name = fileName[0];
-let fileType = fileName[1];
+let imageType = fileName[1];
 let v = process.argv[7];
 
-ITPpacket.init(fileType, name,v);
+if (imageType == "bmp"){ bitImageType = 1; }
+    else if (imageType == "jpeg"){ bitImageType = 2; }
+    else if (imageType == "gif"){ bitImageType = 3; }
+    else if (imageType == "png"){  bitImageType = 4; }
+    else if (imageType == "tiff"){ bitImageType = 5; }
+    else if(imageType == "raw"){bitImageType = 15; }
+ITPpacket.init(fileType, name,v,bitImageType,);
 
 //Creating a socket connection
 let client = new net.Socket();
