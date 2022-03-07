@@ -7,84 +7,124 @@ let ITPpacket = require('./ITPRequest');
 // Process is built into node referring to the GetImage -s <serverIP>:<port> -q <image name> -v <version>
 // argv determines which section of the call we are on
 
-let connectionInfo = process.argv[3].split(":");
-let fileName = process.argv[5].split(".");
-let HOST = connectionInfo[0];
-let PORT = connectionInfo[1];
-let name = fileName[0];
-let imageType = fileName[1];
-let v = process.argv[7];
+let connectInfo = process.argv[3].split(":");
+let HOST = connectInfo[0];
+let PORT = connectInfo[1];
+let commandLineArray = process.argv;
+let packageData = [];
 
-if (imageType == "bmp"){ bitImageType = 1; }
-    else if (imageType == "jpeg"){ bitImageType = 2; }
-    else if (imageType == "gif"){ bitImageType = 3; }
-    else if (imageType == "png"){  bitImageType = 4; }
-    else if (imageType == "tiff"){ bitImageType = 5; }
-    else if(imageType == "raw"){bitImageType = 15; }
-ITPpacket.init(fileType, name,v,bitImageType,);
-
-//Creating a socket connection
+//Creating nnew a socket connection
 let client = new net.Socket();
 client.connect(PORT, HOST, function() {
-  console.log("Connected to ImageDB server on: " + HOST + ":" + PORT);
-  client.write(ITPpacket.getBytePacket());
+  console.log("Connected to ImageDB server on: " + HOST + ":" + PORT + "\n");
+
+//If creating the packet works form commmand line write packet back
+  if (handleCommandLine(commandLineArray)){
+    client.write(ITPpacket.getBytePacket());
+  }
+  else{
+    client.end();
+  }
 });
 
-const filePartitions = [];
+client.on("data", data => {
 
-client.on("data", partition => filePartitions.push(partition));
+  //Handle packets from server
+  console.log("ITP packet header received: \n");
+  packageData.push(data);
+  handleServerPackets(packageData);
 
-// client.on("data", data => {
-
-//   let bufferSize = data.byteLength;
-
-
-// });
+});
 
 client.on("end", () => {
-  const resPacket = Buffer.concat(filePartitions);
-  let file = resPacket.slice(12);
-  let header = resPacket.slice(0,12);
-
-  fs.writeFile(process.argv[5], file, 'binary', function(error, wrote){
-    if(error) {
-      console.log(error);
-    } else {
-      open(process.argv[5]);
-    }
-  });
-
-  let v = parseBitPacket(resPacket, 0, 4);
-  let resTypeInteger = parseBitPacket(resPacket, 4, 8);
-  let seqNum = parseBitPacket(resPacket, 12, 20)
-  let timestamp = parseBitPacket(resPacket, 32, 32);
-  
-  let resType;
-
-  switch(resTypeInteger){
-    case 0 : resType = "Query"; break;
-    case 1 : resType = "Found"; break;
-    case 2 : resType = "Not found"; break;
-    case 3 : resType = "Busy"; break;      
-  }
-  console.log(printPacketBit(header) +
-    "Server sent: \n" +
-    "\n    --ITP version = " + v +
-    "\n    --Response Type = " + resType +
-    "\n    --Sequence Number =  " + seqNum +
-    "\n    --Timestamp = " + timestamp
-  );
-
   client.end();
 });
+
+function handleServerPackets(data){
+      
+//Collect pacekt fields
+  let reponsePacket = Buffer.concat(data);
+  let image = reponsePacket.slice(12);
+  let responseHeader = reponsePacket.slice(0,12);
+  let v = parseBitPacket(reponsePacket, 0, 4);
+  let resTypeInteger = parseBitPacket(reponsePacket, 4, 8);
+  let responseType;
+  let seqNumber = parseBitPacket(reponsePacket, 12, 20)
+  let timestamp = parseBitPacket(reponsePacket, 32, 32);
+  
+  //Open file if response type is found
+  if(resTypeInteger == 1){
+    try{
+      fs.writeFile(process.argv[5], image, 'binary', function(){open(process.argv[5])});
+    }
+    catch(err){
+      console.log(err);
+    }
+  }  
+ 
+  //convert request type int to request type string
+  switch(resTypeInteger){
+    case 0 : responseType = "Query"; break;
+    case 1 : responseType = "Found"; break;
+    case 2 : responseType = "Not found"; break;
+    case 3 : responseType = "Busy"; break;      
+  }
+
+  console.log(
+
+    printPacketBit(responseHeader) + "\n"+
+
+    "Server sent: \n" +
+
+    "--ITP version = " + v + "\n" +
+
+    "--Response Type = " + responseType + "\n" +
+
+    "--Sequence Number =  " + seqNumber + "\n" +
+    
+    "--Timestamp = " + timestamp
+  );
+}
 
 client.on("close", function(){
   console.log("Connection closed");
 })
 
 client.on("end", () => {
-  console.log("Disconnected from the server")
+  console.log("\nDisconnected from the server")
 })
+
+//Take command line input and prepare packet
+function handleCommandLine(argv){
+
+  let image = argv[5].split(".");
+  
+  let imageName = image[0];
+  let imageType = image[1];
+  let v = argv[7];
+  
+      //convert image type int to request type string
+    switch(imageType){
+      case "bmp" : imageExtensionInteger = 1; break;
+      case "jpeg" : imageExtensionInteger = 2; break;
+      case "gif" : imageExtensionInteger = 3; break;
+      case "png" : imageExtensionInteger = 4; break;
+      case "tiff" : imageExtensionInteger = 5;  break;
+      case "raw" : imageExtensionInteger = 15; break;
+      default : console.log("Wrong file type"); return false;   
+    }
+        
+    //check for version
+    if(v==7){
+      ITPpacket.init(imageName,v,imageExtensionInteger);
+      ITPpacket.getBytePacket();
+      return true;
+    }
+    else{
+      console.log("\nYou has an unsupported version!");
+      return false;
+    }
+  }
 
 
 // Returns the integer value of the extracted bits fragment for a given packet

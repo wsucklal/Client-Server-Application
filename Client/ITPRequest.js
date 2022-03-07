@@ -2,54 +2,20 @@
 var HEADER_SIZE = 12;
 
 //Defining variables that make up the header
-var v,bitImageType ,requestType, timestamp, imageType, fileName;
+let v,imageExtensionInteger ,reqTypeInteger, timestamp, imageName;
 
 module.exports = {
-  //ITP payload size
-  payloadSize: 0,
-  //Ihe bit content of the payload
-  payload: '',
-  //The bit content of the ITP header
-  reqHeader: '',
-
-  init: function (imageType, name,v,bitImageType) {
+ 
+  init: function (iName,vrsn,iExtensionInteger) {
     //Given version feild is 7
-    v = v;
+    //v = vrsn;
+    v = 7;
 
     //Set variables
-    requestType = 0;
+    reqTypeInteger = 0;
     timestamp = 0;
-    imageType = imageType;
-    fileName = name;
-    bitImageType = bitImageType;
-
-    //Set the size of the image file name size accordingly
-    let stringName = stringToBytes(fileName);
-    this.payloadSize = stringName.length;
-
-    //Logic for image type;
-    if (imageType == "bmp"){ bitImageType = 1; }
-    else if (imageType == "jpeg"){ bitImageType = 2; }
-    else if (imageType == "gif"){ bitImageType = 3; }
-    else if (imageType == "png"){  bitImageType = 4; }
-    else if (imageType == "tiff"){ bitImageType = 5; }
-    else if(imageType == "raw"){bitImageType = 15; }
-
-    //Filling the header with the necessary fields
-    this.reqHeader = new Buffer.alloc(HEADER_SIZE);
-
-    
-    //Create payload 
-    this.payload = new Buffer.alloc(stringName.length);
-
-    for (var i = 0 ; i < stringName.length ; i++) {
-      this.payload[i] = stringName[i];
-    }
-
-    //console.log(stringName);
-    //console.log(this.payloadSize);
-    //console.log(this.payload);
-    
+    imageName = iName;
+    imageExtensionInteger = iExtensionInteger;  
   },
 
   //--------------------------
@@ -57,18 +23,29 @@ module.exports = {
   //--------------------------
   getBytePacket: function () {
     //Creat buffer to hold packet
-    let packet = new Buffer.alloc(this.payloadSize + HEADER_SIZE);
     let requestHeader = new Buffer.alloc(HEADER_SIZE);
-    let payload;
-    let packetData;
+    let payload = [];
+    let packetData = [];
+    let imageNameBytes;
 
+    //Set the size of the image file name size accordingly
+    imageNameBytes = stringToBytes(imageName);
+        
+    //Create payload 
+        payload = new Buffer.alloc(imageNameBytes.length);
+        for (var i = 0 ; i < imageNameBytes.length ; i++) {
+          payload[i] = imageNameBytes[i];
+        }
+    
+    
+    //store fields in request header   
     storeBitPacket(requestHeader, v, 0, 4);
-    storeBitPacket(requestHeader, requestType, 24, 8);
+    storeBitPacket(requestHeader, reqTypeInteger, 24, 8);
     storeBitPacket(requestHeader, timestamp, 32, 32);
-    storeBitPacket(requestHeader, bitImageType, 64, 4);
-    storeBitPacket(requestHeader, this.payloadSize, 68, 28);
+    storeBitPacket(requestHeader, imageExtensionInteger, 64, 4);
+    storeBitPacket(requestHeader, imageNameBytes.length, 68, 28);
 
-    packetData = [responseHeader,payload];
+    packetData = [requestHeader,payload];
 
     return Buffer.concat(packetData);
   },

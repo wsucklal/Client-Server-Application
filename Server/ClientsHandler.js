@@ -17,7 +17,8 @@ module.exports = {
         sock.on ("data", data =>{
             console.log("ITP Packet received: \n");
             printPacketBit(data);
-
+        
+            //If collecting the packet works packet write back
             if(handleClientPackets(data,clientNo)){
                 sock.write(ITPpacket.getPacket());
             }
@@ -33,6 +34,7 @@ module.exports = {
 //Handling Client Packets
 function handleClientPackets(data,clientNo){
 
+    //Collect pacekt fields
     v = parseBitPacket(data, 0, 4);
     timestamp = parseBitPacket(data, 32, 32);
     sequenceNumber = singleton.getSequenceNumber();
@@ -48,7 +50,7 @@ function handleClientPackets(data,clientNo){
         case 3 : reqType = "Busy"; break;      
     }
 
-    //convert request type int to request type string
+    //convert file type int to request type string
     switch(fileExtensionInteger){
         case 1 : fileExtension = "BMP"; break;
         case 2 : fileExtension = "JPEG"; break;

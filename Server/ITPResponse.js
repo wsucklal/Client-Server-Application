@@ -19,12 +19,13 @@ module.exports = {
     //
     // enter your code here
     //
+
+    //stored variables for packet
     v = 7;
     sequenceNumber = seqNumber;
     timestamp =  singleton.getTimestamp();
     fileName = fName;
     fileExtension = fExtension.toLowerCase()
-     responseHeader = new Buffer.alloc(HEADER_SIZE);
   },
   //--------------------------
   //getpacket: returns the entire packet
@@ -49,17 +50,18 @@ module.exports = {
             require("path").dirname(require.main.filename) + "/images/" + fileName +"."+ fileExtension
           );
         
+          //Set response type to its found
         responseType = 1;
         packetData = [responseHeader,imageData];
 
     }
     catch(err) {
-
+        //set response type to not found and dont add payload
         responseType = 2;
         packetData = [responseHeader];
     }
     finally {
-
+        //store fields in reponse header
         storeBitPacket(responseHeader, v, 0, 4);
         storeBitPacket(responseHeader, responseType, 4, 8);
         storeBitPacket(responseHeader, sequenceNumber, 12, 20);
