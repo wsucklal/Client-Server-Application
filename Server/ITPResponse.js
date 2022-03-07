@@ -1,69 +1,80 @@
-
 // You may need to add some delectation here
-let singleton =  require ("./Singleton");
+let singleton = require("./Singleton");
 let fs = require("fs");
 
 //Variables for packets
-var HEADER_SIZE =12; //packet header size
-let v, responseType, sequenceNumber, timestamp, imageByteSize, responseHeader, imageData, packetData, fileName;
+var HEADER_SIZE = 12; //packet header size
+let v,
+  responseType,
+  sequenceNumber,
+  timestamp,
+  fileName = "",
+  fileExtension= "";
 
 module.exports = {
 
-    init: function (data) { 
+    reponseHeader:"",
+  init: function (seqNumber,tstamp, fName, fExtension) {
+    // feel free to add function parameters as needed
+    //
+    // enter your code here
+    //
+    v = 7;
+    sequenceNumber = seqNumber;
+    timestamp =  tstamp;
+    fileName = fName;
+    fileExtension = fExtension.toLowerCase()
+     responseHeader = new Buffer.alloc(HEADER_SIZE);
+  },
+  //--------------------------
+  //getpacket: returns the entire packet
+  //--------------------------
+  getPacket: function () {
+    // enter your code here
+    let responseHeader =  new Buffer.alloc(HEADER_SIZE);
+    let packetData;
+    let imageData;
+    let imageByteSize = 0;
 
-        // feel free to add function parameters as needed
-        //
-        // enter your code here
-        //
-
-        reponseHeader = new Buffer.alloc(HEADER_SIZE);
-
-        v = 7 ;
-        (imageData) ? responseType = 1 :  responseType = 2; //set response type to  either 1 or 2
-        sequenceNumber = singleton.getSequenceNumber();
-        timestamp =  singleton.getTimestamp();
-
-
-        fileName = data.slice(4, 16).toString().replace(/\0/g, "");
+    //getImage Data and image size
+    try{
 
         const stats = fs.statSync(
-            require("path").dirname(require.main.filename) + "/images/" + fileName
-        );
+            require("path").dirname(require.main.filename) + "/images/" + fileName +"."+ fileExtension
+          );
+      
+           imageByteSize = stats.size;
+      
+          imageData = fs.readFileSync(
+            require("path").dirname(require.main.filename) + "/images/" + fileName +"."+ fileExtension
+          );
+        
+        responseType = 1;
+        packetData = [responseHeader,imageData];
 
-        const imageByteSize = stats.size / 1000;
-
-        imageData =  fs.readFileSync(
-            require("path").dirname(require.main.filename) + "/images/" + fileName
-        );
-
-
-        storeBitPacket(this.reponseHeader, v, 0, 4);
-        storeBitPacket(this.responseHeader, responseType, 4, 8);
-        storeBitPacket(this.responseHeader, sequenceNumber, 12, 20);
-        storeBitPacket(this.responseHeader, timestamp, 32, 32);
-        storeBitPacket(this.responseHeader, imageByteSize, 64, 32);
-
-    },
-
-    //--------------------------
-    //getpacket: returns the entire packet
-    //--------------------------
-    getPacket: function (data) {
-        // enter your code here
-                
-        let packet = new Buffer(packetData.concat([this.reponseHeader,imageData]));
-
-        return packet ;
     }
+    catch(err) {
+
+        responseType = 2;
+        packetData = [responseHeader];
+    }
+    finally {
+
+        storeBitPacket(responseHeader, v, 0, 4);
+        storeBitPacket(responseHeader, responseType, 4, 8);
+        storeBitPacket(responseHeader, sequenceNumber, 12, 20);
+        storeBitPacket(responseHeader, timestamp, 32, 32);
+        storeBitPacket(responseHeader, imageByteSize, 64, 32);
+    }
+
+    return Buffer.concat(packetData);
+  }
 };
-
-
-
 
 //// Some usefull methods ////
 // Feel free to use them, but DON NOT change or add any code in these methods.
 
-// Store integer value into specific bit poistion the packet
+// Store integer value into specific bit position the packet
 function storeBitPacket(packet, value, offset, length) {
     // let us get the actual byte position of the offset
     let lastBitPosition = offset + length - 1;

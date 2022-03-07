@@ -3,7 +3,7 @@ let singleton = require('./Singleton');
 
 // You may need to add some delectation here
 let v, timestamp, fileName,fileExtensionInteger, reqTypeInteger, reqType ;
-
+let clientInfo = [];
 module.exports = {
 
     handleClientJoining: function (sock) {
@@ -12,27 +12,32 @@ module.exports = {
         //
         // you may need to develop some helper functions
         // that are defined outside this export block
-
         let clientNo = singleton.getTimestamp();
-        console.log("Client-" + clientNo + " is connected at timestamp" + singleton.getTimestamp());
+        console.log("Client-" + clientNo + " is connected at timestamp " + singleton.getTimestamp() + "\n");
        
         sock.on ("data", data =>{
-            console.log("ITP Packet received:");
-            console,log();
-            handleClientPackets(data);
+            console.log("ITP Packet received: \n");
+            printPacketBit(data);
+
+            if(handleClientPackets(data,clientNo)){
+                sock.write(ITPpacket.getPacket());
+            }
+            sock.end();
         });
 
         sock.on("close",data =>{
-            handleClientLeaving();
+            console.log ( "Client-" +  clientNo + " closed the connection" + "\n");
         });
     }
 };
 
 //Handling Client Packets
-function handleClientPackets(data){
+function handleClientPackets(data,clientNo){
 
-    v = parseBitPacket(data, 0, 4);
+    //v = parseBitPacket(data, 0, 4);
+    v = 6;
     timestamp = parseBitPacket(data, 32, 32);
+    sequenceNumber = singleton.getSequenceNumber();
     fileExtensionInteger = parseBitPacket(data, 64, 4);
     reqTypeInteger = parseBitPacket(data, 24, 8);
     fileName = bytesToString(data.slice(12));
@@ -56,26 +61,32 @@ function handleClientPackets(data){
         case 15 : fileExtension = "RAW"; break;      
     }
 
+    
     console.log(
-        "Client-" + clientNo + "requests :\n" + 
+        "\n Client-" + clientNo + " requests:\n" + 
 
-        "-- ITP version: " +  v + "\n " + 
+        "-- ITP version: " +  v + "\n" + 
 
-        "-- Timestamp: " +  timestamp +  "\n " + 
+        "-- Timestamp: " +  timestamp +  "\n" + 
 
-        "-- Request Type: " +  reqType +  "\n " + 
+        "-- Request Type: " +  reqType +  "\n" + 
 
         "-- Image file extension(s):" +  fileExtension + "\n" +
         
-        "-- Image file name: " + fileName
+        "-- Image file name: " + fileName + "\n"
+        
         );
-
-    ITPpacket.getPacket(data);
-    sock.write(ITPpacket.getPacket(data));
-}
-
-function handleClientLeaving(){
-    console.log ( "Client-" +  clientNo + "closed the connection")
+    
+    //check for version
+    if(v==7){
+        ITPpacket.init(sequenceNumber,timestamp, fileName, fileExtension);
+        ITPpacket.getPacket();
+        return true;
+    }
+    else {
+        console.log("Client has an unsupported version!");
+        return false;
+    }
 }
 
 
